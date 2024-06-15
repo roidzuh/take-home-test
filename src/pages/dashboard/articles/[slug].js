@@ -36,7 +36,11 @@ export default function ArticlePage() {
   return (
     <MainLayout>
       <div className="flex flex-col px-6 mt-4 gap-4">
-        <img src={article.image} alt={article.title} className="rounded-2xl" />
+        <img
+          src={article.image}
+          alt={article.title}
+          className="rounded-2xl w-[500px]"
+        />
         <h1>{article.title}</h1>
         <p>{article.description}</p>
       </div>

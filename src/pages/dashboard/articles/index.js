@@ -7,28 +7,28 @@ import Link from "next/link";
 export default function ArticlePages() {
   const [articles, setArticles] = useState([]);
   const [role, setRole] = useState("");
-  const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const accessToken = localStorage.getItem("accessToken");
-      const role = localStorage.getItem("role");
-      setRole(role);
-      if (accessToken && role === "admin") {
-        try {
-          const data = await fetchArticles(accessToken, limit, page);
+    const accessToken = localStorage.getItem("accessToken");
+    const storedRole = localStorage.getItem("role");
+    setRole(storedRole);
+
+    if (accessToken && ["admin", "owner"].includes(storedRole)) {
+      fetchArticles(accessToken)
+        .then((data) => {
           setArticles(data.data);
-          setLimit(data.limit);
           setPage(data.page);
           setTotalPage(data.totalPage);
-        } catch (error) {
+          setLoading(false);
+        })
+        .catch((error) => {
           console.error("Error fetching articles:", error);
-        }
-      }
-    };
-    fetchData();
+          setLoading(false);
+        });
+    }
   }, []);
 
   const columns = useMemo(
@@ -50,6 +50,14 @@ export default function ArticlePages() {
 
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({ columns, data }, useSortBy);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div>Loading...</div>
+      </MainLayout>
+    );
+  }
 
   if (role === "admin") {
     return (
@@ -76,17 +84,15 @@ export default function ArticlePages() {
                 prepareRow(row);
                 return (
                   <tr {...row.getRowProps()} key={rowIndex}>
-                    {row.cells.map((cell, cellIndex) => {
-                      return (
-                        <td
-                          {...cell.getCellProps()}
-                          className="px-6 py-4"
-                          key={cellIndex}
-                        >
-                          {cell.render("Cell")}
-                        </td>
-                      );
-                    })}
+                    {row.cells.map((cell, cellIndex) => (
+                      <td
+                        {...cell.getCellProps()}
+                        className="px-6 py-4"
+                        key={cellIndex}
+                      >
+                        {cell.render("Cell")}
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
@@ -114,10 +120,65 @@ export default function ArticlePages() {
         </div>
       </MainLayout>
     );
-  } else {
+  } else if (role === "owner") {
     return (
       <MainLayout>
-        <h1>Articles</h1>
+        <div>
+          <table {...getTableProps()} className="w-full">
+            <thead className="bg-gray-50">
+              {headerGroups.map((headerGroup, index) => (
+                <tr {...headerGroup.getHeaderGroupProps()} key={index}>
+                  {headerGroup.headers.map((column, colIndex) => (
+                    <th
+                      {...column.getHeaderProps(column.getSortByToggleProps())}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      key={colIndex}
+                    >
+                      {column.render("Header")}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {rows.slice(0, 20).map((row, rowIndex) => {
+                prepareRow(row);
+                return (
+                  <tr {...row.getRowProps()} key={rowIndex}>
+                    {row.cells.map((cell, cellIndex) => (
+                      <td
+                        {...cell.getCellProps()}
+                        className="px-6 py-4"
+                        key={cellIndex}
+                      >
+                        {cell.render("Cell")}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="flex justify-center mt-4">
+            {page > 1 && (
+              <button
+                onClick={() => setPage(page - 1)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4"
+              >
+                Prev
+              </button>
+            )}
+            <span className="text-gray-500">Page {page} of 2</span>
+            {page < 2 && (
+              <button
+                onClick={() => setPage(page + 1)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
+              >
+                Next
+              </button>
+            )}
+          </div>
+        </div>
       </MainLayout>
     );
   }
